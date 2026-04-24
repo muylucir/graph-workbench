@@ -1,0 +1,31 @@
+[Unit]
+Description=travel-graph-lab Next.js app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/project/travel-graph-lab/web
+
+# Loaded by systemd as plain KEY=VALUE lines. Current .env fits this format.
+# Do NOT put AWS credentials here — EC2 instance role supplies them via IMDS.
+EnvironmentFile=/home/ec2-user/project/travel-graph-lab/web/.env
+Environment=NODE_ENV=production
+Environment=PATH=/home/ec2-user/.nvm/versions/node/v22.16.0/bin:/usr/local/bin:/usr/bin:/bin
+
+# Absolute path because systemd doesn't source ~/.bashrc / nvm.sh.
+ExecStart=/home/ec2-user/.nvm/versions/node/v22.16.0/bin/npm start
+
+StandardOutput=journal
+StandardError=journal
+
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

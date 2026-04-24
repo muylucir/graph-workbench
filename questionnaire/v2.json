@@ -1,0 +1,149 @@
+{
+  "version": "v2",
+  "questions": [
+    {
+      "id": "Q01",
+      "title": "오사카 근교 관광지 탐색",
+      "naturalLanguage": "오사카 근교 도시의 관광지를 보여줘",
+      "tags": ["geo", "discovery"],
+      "cypher": "MATCH (osa:City {_id:'OSA'})-[:NEAR_CITY|OFTEN_COTRAVELED]-(c:City) MATCH (c)<-[:ATTRACTION_IN_CITY]-(a:Attraction) RETURN c._id AS city, collect(DISTINCT a._id)[..5] AS topAttractions",
+      "expected": { "rowCountRange": [2, 20] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q02",
+      "title": "오사카+교토 둘 다 방문 상품",
+      "naturalLanguage": "오사카와 교토 둘 다 방문하는 상품",
+      "tags": ["geo", "filter"],
+      "cypher": "MATCH (sp:SaleProduct)-[:ARRIVES_IN]->(:City {_id:'OSA'}) MATCH (sp)-[:VISITS_CITY]->(:City {_id:'OSA'}) MATCH (sp)-[:VISITS_CITY]->(:City {_id:'UKY'}) RETURN sp._id AS code",
+      "expected": { "rowCountRange": [1, 100] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q03",
+      "title": "특정 상품 숙박 호텔 (JOP1302603307CS)",
+      "naturalLanguage": "JOP1302603307CS 상품의 일차별 숙박 호텔",
+      "tags": ["fact", "lookup"],
+      "cypher": "MATCH (sp:SaleProduct {_id:'JOP1302603307CS'})-[:HAS_HOTEL_STAY]->(hs:HotelStay) OPTIONAL MATCH (hs)-[:MATCHED_TO]->(h:Hotel) RETURN hs.schdDay AS day, hs.htlKoNm AS hotel, h._id AS hotelId ORDER BY day",
+      "expected": { "rowCountRange": [1, 10] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q04",
+      "title": "관광지 방문 순서 분포 (도톤보리)",
+      "naturalLanguage": "도톤보리가 몇일차 몇번째로 주로 방문되는가",
+      "tags": ["stats"],
+      "cypher": "MATCH (a:Attraction)<-[r:HAS_SCHEDULED_ATTRACTION]-() WHERE a.landmarkNameKo CONTAINS '도톤보리' RETURN r.schdDay AS day, r.visitOrder AS ord, count(*) AS freq ORDER BY day, ord",
+      "expected": { "rowCountRange": [1, 50] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q05",
+      "title": "reference 기반 유사 상품군",
+      "naturalLanguage": "특정 reference_product_id와 같은 템플릿의 다른 출발상품들",
+      "tags": ["planning", "template"],
+      "cypher": "MATCH (rp:RepresentativeProduct {_id:'MJO1008'})<-[:INSTANCE_OF]-(sp:SaleProduct) RETURN sp._id AS code, sp.saleProdNm AS name",
+      "expected": { "rowCountRange": [1, 20] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q06",
+      "title": "대표상품 내 일정 변형 diff",
+      "naturalLanguage": "MJO1008 아래 SaleProduct 각각의 Attraction 집합",
+      "tags": ["planning", "comparison"],
+      "cypher": "MATCH (rp:RepresentativeProduct {_id:'MJO1008'})<-[:INSTANCE_OF]-(sp:SaleProduct)-[:HAS_SCHEDULED_ATTRACTION]->(a:Attraction) RETURN sp._id AS code, collect(DISTINCT a.landmarkNameKo) AS attractions",
+      "expected": { "rowCountRange": [1, 10] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q07",
+      "title": "공동방문 상위 관광지 (오사카성)",
+      "naturalLanguage": "오사카성과 같은 상품에 자주 등장하는 관광지",
+      "tags": ["internal_diagnostic"],
+      "cypher": "MATCH (a:Attraction)-[r:CO_VISITED]-(b:Attraction) WHERE a.landmarkNameKo CONTAINS '오사카성' RETURN b.landmarkNameKo AS name, r.support AS support ORDER BY support DESC LIMIT 5",
+      "expected": { "rowCountRange": [1, 5] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q08",
+      "title": "관광지 시간대 분포 (기요미즈데라)",
+      "naturalLanguage": "기요미즈데라 오전/오후 방문 분포",
+      "tags": ["internal_diagnostic"],
+      "cypher": "MATCH (a:Attraction {_id:'LJP00236937'})<-[r:HAS_SCHEDULED_ATTRACTION]-() RETURN r.visitOrder AS ord, count(*) AS cnt ORDER BY ord",
+      "expected": { "rowCountRange": [1, 10] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q09",
+      "title": "로맨틱 + 근교 관광지",
+      "naturalLanguage": "오사카 근교의 로맨틱한 관광지",
+      "tags": ["planning", "filter"],
+      "cypher": "MATCH (osa:City {_id:'OSA'})-[:NEAR_CITY|OFTEN_COTRAVELED]-(c:City) WITH collect(DISTINCT c) + [osa] AS scope UNWIND scope AS c MATCH (c)<-[:ATTRACTION_IN_CITY]-(a:Attraction)-[:HAS_MOOD]->(:Mood {_id:'ROMANTIC'}) RETURN DISTINCT a.landmarkNameKo AS name, c.cityName AS city",
+      "expected": { "rowCountRange": [1, 30] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q10",
+      "title": "특정 호텔 쓰는 다른 상품",
+      "naturalLanguage": "호텔 플라자 고베를 사용한 상품들",
+      "tags": ["fact", "reverse"],
+      "cypher": "MATCH (h:Hotel)<-[:MATCHED_TO]-(hs:HotelStay)<-[:HAS_HOTEL_STAY]-(sp:SaleProduct) WHERE h.name CONTAINS '플라자 고베' RETURN DISTINCT sp._id AS code, sp.saleProdNm AS name",
+      "expected": { "rowCountRange": [1, 20] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q11",
+      "title": "간사이공항 귀국 + 교토 일정",
+      "naturalLanguage": "KIX에서 귀국하며 교토 일정 포함 상품",
+      "tags": ["planning", "constraint"],
+      "cypher": "MATCH (sp:SaleProduct)-[:HAS_FLIGHT_SEGMENT]->(fs:FlightSegment) WHERE fs.segReq = 2 MATCH (fs)-[:DEPARTS_FROM]->(:Airport {_id:'KIX'}) OPTIONAL MATCH (sp)-[:HAS_SCHEDULED_ATTRACTION]->(a:Attraction)-[:ATTRACTION_IN_CITY]->(:City {_id:'UKY'}) WITH sp, count(DISTINCT a) AS kyotoCnt WHERE kyotoCnt >= 1 RETURN sp._id AS code, kyotoCnt",
+      "expected": { "rowCountRange": [1, 30] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q12",
+      "title": "3관광지 같은 일차 조합",
+      "naturalLanguage": "오사카성과 도톤보리가 같은 일차에 함께 등장하는 상품",
+      "tags": ["planning", "combo"],
+      "cypher": "MATCH (sp:SaleProduct)-[r1:HAS_SCHEDULED_ATTRACTION]->(a:Attraction) WHERE a.landmarkNameKo CONTAINS '오사카성' MATCH (sp)-[r2:HAS_SCHEDULED_ATTRACTION]->(b:Attraction) WHERE b.landmarkNameKo CONTAINS '도톤보리' AND r1.schdDay = r2.schdDay RETURN sp._id AS code, r1.schdDay AS day",
+      "expected": { "rowCountRange": [1, 20] },
+      "planningRelevant": false
+    },
+    {
+      "id": "Q13",
+      "title": "신상품 (3관광지 포함 4박5일 오사카 도착)",
+      "naturalLanguage": "아라시야마/후시미/청수사 포함 4박5일 오사카 도착 상품 존재 여부",
+      "tags": ["planning", "counterfactual"],
+      "cypher": "MATCH (sp:SaleProduct)-[:ARRIVES_IN]->(:City {_id:'OSA'}) WHERE sp.trvlNgtCnt >= 3 MATCH (sp)-[:HAS_SCHEDULED_ATTRACTION]->(a:Attraction) WHERE a.landmarkNameKo IN ['아라시야마','후시미이나리','기요미즈데라'] WITH sp, collect(DISTINCT a.landmarkNameKo) AS matched WHERE size(matched) >= 2 RETURN sp._id AS code, matched",
+      "expected": { "rowCountRange": [0, 20] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q14",
+      "title": "복합 제약 (3박4일 + 테마 + 호텔 등급)",
+      "naturalLanguage": "3박4일 오사카 도착 + 온천 테마 + 4성급 호텔",
+      "tags": ["planning", "constraint"],
+      "cypher": "MATCH (sp:SaleProduct)-[:ARRIVES_IN]->(:City {_id:'OSA'}) WHERE sp.trvlNgtCnt = 3 AND sp.trvlDayCnt = 4 MATCH (sp)-[:HAS_HOTEL_STAY]->(:HotelStay)-[:MATCHED_TO]->(h:Hotel) WITH sp, collect(DISTINCT h) AS hotels WHERE size(hotels) > 0 RETURN sp._id AS code, [x IN hotels | x.name] AS hotels",
+      "expected": { "rowCountRange": [0, 30] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q15",
+      "title": "벚꽃시즌 관광지 포함 상품",
+      "naturalLanguage": "벚꽃시즌 태그 관광지를 포함한 오사카 도착 상품",
+      "tags": ["planning", "tag"],
+      "cypher": "MATCH (sp:SaleProduct)-[:ARRIVES_IN]->(:City {_id:'OSA'}) MATCH (sp)-[:HAS_SCHEDULED_ATTRACTION]->(a:Attraction)-[:HAS_SEASONALITY]->(:Season {_id:'CHERRY_BLOSSOM'}) RETURN DISTINCT sp._id AS code, sp.saleProdNm AS name LIMIT 20",
+      "expected": { "rowCountRange": [1, 30] },
+      "planningRelevant": true
+    },
+    {
+      "id": "Q16",
+      "title": "트렌드 기반 대체 관광지 탐색",
+      "naturalLanguage": "특정 관광지와 같이 자주 가는 곳 중 지리적으로 인접한 대체지",
+      "tags": ["planning", "trend"],
+      "cypher": "MATCH (a:Attraction {landmarkNameKo:'오사카성 공원'})-[r:CO_VISITED]-(b:Attraction) MATCH (b)-[:ATTRACTION_IN_CITY]->(c:City) RETURN DISTINCT b.landmarkNameKo AS name, c.cityName AS city, r.support AS support ORDER BY r.support DESC LIMIT 8",
+      "expected": { "rowCountRange": [1, 8] },
+      "planningRelevant": true
+    }
+  ]
+}

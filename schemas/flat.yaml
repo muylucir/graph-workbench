@@ -1,0 +1,82 @@
+name: "Flat — 단순한 매핑"
+description: "테이블=노드, FK=관계. 파생 없음. 태그는 JSON string 유지. 개발자가 처음 생각할 법한 baseline."
+version: "0.5"
+slot: A
+
+source:
+  sqlite: "../graph-study/osaka_subset/graph_hotel_info_osaka.sqlite"
+
+vertices:
+  - label: Country
+    from: { table: country }
+    id: "code"
+    properties:
+      name: name
+
+  - label: City
+    from: { table: city }
+    id: "city_code"
+    properties:
+      cityName: city_name
+      englishCityName: english_city_name
+      lat: latitude
+      lng: longitude
+      countryCode: country_code
+      stateCode: state_code
+
+  - label: Attraction
+    from: { table: package_attraction }
+    id: "id"
+    properties:
+      name: landmarkNameKo
+      nameEn: landmarkNameEn
+      cityCode: cityCode
+      latitude: latitude
+      longitude: longitude
+      themeTagsJson: featureThemeTagsJson
+      moodTagsJson: featureMoodTagsJson
+      seasonalityTagsJson: featureSeasonalityTagsJson
+      summaryKo: featureSummaryKo
+
+  - label: Hotel
+    from: { table: package_hotel }
+    id: "id"
+    properties:
+      name: name
+      nameEn: en_name
+      grade: grade
+      rating: rating
+      address: address
+
+  - label: SaleProduct
+    from: { table: package_product_meta }
+    id: "saleProdCd"
+    properties:
+      name: saleProdNm
+      rprsProdCd: rprsProdCd
+      arrCityCd: arrCityCd
+      depCityCd: depCityCd
+      vistCity: vistCity
+      trvlDayCnt: trvlDayCnt
+      trvlNgtCnt: trvlNgtCnt
+
+edges:
+  - type: IN_COUNTRY
+    from: { table: city, where: "country_code IS NOT NULL" }
+    source: { vertex: City, match_by: city_code }
+    target: { vertex: Country, match_by: country_code }
+
+  - type: ATTRACTION_IN_CITY
+    from: { table: package_attraction, where: "cityCode IS NOT NULL" }
+    source: { vertex: Attraction, match_by: id }
+    target: { vertex: City, match_by: cityCode }
+
+  - type: ARRIVES_IN
+    from: { table: package_product_meta, where: "arrCityCd IS NOT NULL" }
+    source: { vertex: SaleProduct, match_by: saleProdCd }
+    target: { vertex: City, match_by: arrCityCd }
+
+derived: []
+
+options:
+  batch_size: 100

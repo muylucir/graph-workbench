@@ -1,0 +1,26 @@
+diff --git a/node_modules/@strands-agents/sdk/dist/src/models/bedrock.js b/node_modules/@strands-agents/sdk/dist/src/models/bedrock.js
+index 3053d66..56cb601 100644
+--- a/node_modules/@strands-agents/sdk/dist/src/models/bedrock.js
++++ b/node_modules/@strands-agents/sdk/dist/src/models/bedrock.js
+@@ -328,7 +328,7 @@ export class BedrockModel extends Model {
+         return messages.reduce((acc, message) => {
+             const content = message.content
+                 .map((block) => this._formatContentBlock(block))
+-                .filter((block) => block !== undefined);
++                .filter((block) => block !== undefined && block !== null);
+             if (content.length > 0) {
+                 acc.push({ role: message.role, content });
+             }
+@@ -411,7 +411,11 @@ export class BedrockModel extends Model {
+                     };
+                 }
+                 else {
+-                    throw Error("reasoning content format incorrect. Either 'text' or 'redactedContent' must be set.");
++                    // Patched: adaptive thinking on Opus 4.7 emits reasoning blocks
++                    // that carry only a signature (no text, no redactedContent) between
++                    // tool calls. The SDK originally threw here, which crashed multi-turn
++                    // agentic flows. Skip the empty block instead.
++                    return null;
+                 }
+             }
+             case 'cachePointBlock':

@@ -1,0 +1,7 @@
+.claude/
+.mcp.json
+docs/slides
+web/.next/
+web/node_modules/
+web/.env
+docs/SPEC.md
