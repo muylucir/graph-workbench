@@ -125,16 +125,3 @@ npm run start                   # http://localhost:3080
 6. **LLM 에이전트 슬롯 자동 재구성** — 슬롯 전환 시 시스템 프롬프트의 스키마 요약이 자동 갱신, neptune_cypher 도구가 현재 슬롯의 suffix를 자동 주입. 같은 자연어 질문이 Slot A에서는 "스키마에 관계가 없다"로 실패, Slot B에서는 정확한 답을 반환.
 7. **Simple Mode 체크박스 편집기** — 매핑 결정 4그룹(태그 분해/지리 계층/사실 vertex/파생 edge)을 체크박스로 조작 → YAML 자동 생성 (`column-assembler.ts` + `yaml-builder.ts`). MD도 스키마 실험 가능.
 8. **DynamoDB 스냅샷** — 매핑·점수 결과를 스냅샷으로 저장/복원해 반복 시연 비용 제거.
-
-## V1.0 로드맵
-
-- 임의 RDB 업로드
-- Simple Mode 체크박스 편집기 완성
-- Vector RAG 하이브리드
-- LLM judge
-- 엑스포트 (Neptune Bulk Load CSV, Neo4j Cypher)
-
-## 관련 프로젝트
-
-- `../graph-study/` — Phase 1 스키마 연구·검증 도구. travel-graph-lab은 이 연구의 시연 프레임워크 버전.
-- `../travel-md/` — GraphRAG 당위성 입증 PoC (크롤링 기반).
