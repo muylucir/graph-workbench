@@ -41,7 +41,9 @@ type Message = {
 const CHAT_MODELS: Array<{ id: string; label: string; thinking: boolean }> = [
   { id: 'global.anthropic.claude-haiku-4-5', label: 'Haiku 4.5 (빠름·저렴)', thinking: false },
   { id: 'global.anthropic.claude-sonnet-4-6', label: 'Sonnet 4.6 (균형·기본)', thinking: true },
-  { id: 'global.anthropic.claude-opus-4-7', label: 'Opus 4.7 (최강 추론)', thinking: true },
+  // Opus 4.7 + adaptive thinking + tool-use 다중턴에서 Bedrock이 가끔 빈 reasoning
+  // 블록을 거절해 전체 대화가 중단되는 이슈가 있어 기본 OFF로 고정한다.
+  { id: 'global.anthropic.claude-opus-4-7', label: 'Opus 4.7 (최강 추론)', thinking: false },
 ];
 
 function modelSupportsThinking(id: string): boolean {
@@ -444,9 +446,13 @@ export default function ChatPage() {
                     : null) as SelectProps.Option | null
                 }
                 onChange={({ detail }) => {
-                  if (detail.selectedOption?.value) {
-                    setModelId(detail.selectedOption.value);
-                  }
+                  const next = detail.selectedOption?.value;
+                  if (!next) return;
+                  setModelId(next);
+                  // If the newly selected model does not support thinking (e.g. Haiku,
+                  // or Opus 4.7 which we disable due to Bedrock reasoning-block issue),
+                  // turn the toggle off so the UI reflects reality.
+                  if (!modelSupportsThinking(next)) setThinkingOn(false);
                 }}
                 options={CHAT_MODELS.map((m) => ({ label: m.label, value: m.id }))}
                 disabled={loading}

@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Box from '@cloudscape-design/components/box';
 import Button from '@cloudscape-design/components/button';
 import Container from '@cloudscape-design/components/container';
@@ -31,6 +38,11 @@ import {
   type TemplateMeta,
 } from '@/lib/derived-templates';
 
+export type RuleBuilderHandle = {
+  /** Append one or more pre-built drafts to the end of the current list. */
+  appendDrafts: (drafts: RuleDraft[]) => void;
+};
+
 type Props = {
   state: AssemblerState;
   onChange: (deriveds: DerivedDef[]) => void;
@@ -44,13 +56,32 @@ type PreviewState =
   | { status: 'ok'; count: number; estimated?: boolean; warnings: string[] }
   | { status: 'error'; message: string };
 
-export default function RuleBuilder({ state, onChange, resyncToken = 0 }: Props) {
+const RuleBuilder = forwardRef<RuleBuilderHandle, Props>(function RuleBuilder(
+  { state, onChange, resyncToken = 0 },
+  ref,
+) {
   const [drafts, setDrafts] = useState<RuleDraft[]>([]);
   const [unmatchedCount, setUnmatchedCount] = useState<number>(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [previews, setPreviews] = useState<Record<string, PreviewState>>({});
   const latestStateRef = useRef(state);
   latestStateRef.current = state;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      appendDrafts: (extra: RuleDraft[]) => {
+        if (!extra?.length) return;
+        // Dedupe by id — fresh callers should supply unique ids, but be safe.
+        setDrafts((prev) => {
+          const seen = new Set(prev.map((d) => d.id));
+          const add = extra.filter((d) => !seen.has(d.id));
+          return [...prev, ...add];
+        });
+      },
+    }),
+    [],
+  );
 
   // Resync drafts whenever the parent loads a preset/snapshot.
   useEffect(() => {
@@ -206,7 +237,9 @@ export default function RuleBuilder({ state, onChange, resyncToken = 0 }: Props)
       </Modal>
     </SpaceBetween>
   );
-}
+});
+
+export default RuleBuilder;
 
 /* ------------------------------------------------------------------ */
 /*  Per-draft card                                                     */

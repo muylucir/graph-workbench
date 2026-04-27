@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   useDraggable,
@@ -24,7 +24,8 @@ import Select, { SelectProps } from '@cloudscape-design/components/select';
 import ButtonDropdown from '@cloudscape-design/components/button-dropdown';
 import StatusIndicator from '@cloudscape-design/components/status-indicator';
 import Modal from '@cloudscape-design/components/modal';
-import RuleBuilder from './RuleBuilder';
+import RuleBuilder, { type RuleBuilderHandle } from './RuleBuilder';
+import DerivedInterviewDrawer from './DerivedInterviewDrawer';
 import {
   type AssemblerState,
   type NodeDef,
@@ -172,6 +173,8 @@ export default function ColumnAssembler({
   const [newNodeModal, setNewNodeModal] = useState<boolean>(false);
   const [editNode, setEditNode] = useState<NodeDef | null>(null);
   const [addEdgeModal, setAddEdgeModal] = useState<boolean>(false);
+  const [interviewOpen, setInterviewOpen] = useState<boolean>(false);
+  const ruleBuilderRef = useRef<RuleBuilderHandle>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -498,8 +501,26 @@ export default function ColumnAssembler({
               )}
             </Container>
 
-            <Container header={<Header variant="h3">관계 만들기 (원본 DB에 없는 관계)</Header>}>
+            <Container
+              header={
+                <Header
+                  variant="h3"
+                  actions={
+                    <Button
+                      iconName="gen-ai"
+                      variant="primary"
+                      onClick={() => setInterviewOpen(true)}
+                    >
+                      LLM과 함께 찾기
+                    </Button>
+                  }
+                >
+                  관계 만들기 (원본 DB에 없는 관계)
+                </Header>
+              }
+            >
               <RuleBuilder
+                ref={ruleBuilderRef}
                 state={state}
                 onChange={(deriveds) =>
                   setState((prev) => ({ ...prev, derived: deriveds }))
@@ -527,6 +548,24 @@ export default function ColumnAssembler({
           </div>
         ) : null}
       </DragOverlay>
+
+      {interviewOpen && (
+        <Modal
+          visible
+          size="max"
+          onDismiss={() => setInterviewOpen(false)}
+          header="파생 관계 인터뷰 (LLM)"
+        >
+          <DerivedInterviewDrawer
+            slot={slot}
+            yamlSnapshot={stateToYaml(state)}
+            onAcceptSuggestion={(draft) =>
+              ruleBuilderRef.current?.appendDrafts([draft])
+            }
+            onClose={() => setInterviewOpen(false)}
+          />
+        </Modal>
+      )}
 
       {/* 드롭 역할 선택 모달 */}
       {dropModal && (

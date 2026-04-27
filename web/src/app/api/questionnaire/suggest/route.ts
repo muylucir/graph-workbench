@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildCypherSuggesterForSlot } from '@/lib/agent/builder';
 import { getSlot } from '@/lib/slot-store';
+import { sanitizeCypher } from '@/lib/questionnaire/runner';
 import type { SlotId } from '@/lib/neptune/suffix';
 
 export const dynamic = 'force-dynamic';
@@ -79,7 +80,8 @@ export async function POST(req: Request) {
         { status: 502 },
       );
     }
-    return NextResponse.json({ slot, suggestion, raw });
+    const fixed = { ...suggestion, cypher: sanitizeCypher(suggestion.cypher) };
+    return NextResponse.json({ slot, suggestion: fixed, raw });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },
